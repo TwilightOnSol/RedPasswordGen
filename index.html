@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Generator</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Password Generator">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #1a1a1a;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+            width: 100%;
+            max-width: 600px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            margin-bottom: 1.5rem;
+            color: #ff4c4c;
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-top: 1rem;
+            color: #ffffff;
+        }
+
+        input[type="number"], input[type="text"], button {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            border-radius: 5px;
+            border: none;
+            box-sizing: border-box;
+        }
+
+        input[type="number"], input[type="text"] {
+            background-color: #2a2a2a;
+            color: #ffffff;
+        }
+
+        button {
+            background-color: #b22222;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background-color: #a11c1c;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+            color: #ffffff;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 0.5rem;
+            accent-color: #ff4c4c;
+        }
+
+        .strength-meter {
+            margin-top: 1rem;
+            color: #ff4c4c;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .password-list {
+            background-color: #222;
+            color: #ff4c4c;
+            border-radius: 5px;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            word-wrap: break-word;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            margin: 0.5rem;
+        }
+
+        .log-area {
+            margin-top: 1rem;
+            background-color: #2a2a2a;
+            color: #ffffff;
+            border-radius: 5px;
+            padding: 0.75rem;
+            max-height: 150px;
+            overflow-y: auto;
+            resize: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Password Generator</h1>
+
+        <label for="length">Password Length:</label>
+        <input type="number" id="length" value="12" min="1" max="20" aria-describedby="lengthHelp">
+        <small id="lengthHelp" style="color: #ffffff;">Choose between 1 and 20 characters.</small>
+
+        <h2>Character Options:</h2>
+        <div class="checkbox-container">
+            <input type="checkbox" id="includeUppercase" checked>
+            <label for="includeUppercase">Include Uppercase Letters</label>
+        </div>
+        <div class="checkbox-container">
+            <input type="checkbox" id="includeLowercase" checked>
+            <label for="includeLowercase">Include Lowercase Letters</label>
+        </div>
+        <div class="checkbox-container">
+            <input type="checkbox" id="includeNumbers" checked>
+            <label for="includeNumbers">Include Numbers</label>
+        </div>
+        <div class="checkbox-container">
+            <input type="checkbox" id="includeSymbols" checked>
+            <label for="includeSymbols">Include Symbols</label>
+        </div>
+
+        <div class="checkbox-container">
+            <input type="checkbox" id="bulkGeneration" onchange="toggleBulkGeneration()">
+            <label for="bulkGeneration">Generate Multiple Passwords</label>
+        </div>
+        <label id="bulkCountLabel" for="bulkCount" style="display: none;">Number of Passwords:</label>
+        <input type="number" id="bulkCount" value="1" min="1" aria-label="Number of Passwords" style="display: none;">
+
+        <button onclick="generatePassword()">Generate Password</button>
+
+        <h2>Your Passwords:</h2>
+        <div id="passwordList" class="password-list" role="listbox"></div>
+
+        <div class="strength-meter" id="generatedStrengthMeter">Generated Strength: N/A (0%)</div>
+
+        <label for="testPassword">Test Your Password:</label>
+        <input type="text" id="testPassword" placeholder="Enter Password to Test">
+        <button onclick="testPassword()">Test Strength</button>
+        <div class="strength-meter" id="userStrengthMeter">Your Password Strength: N/A (0%)</div>
+
+        <h2>Actions:</h2>
+        <div class="action-buttons">
+            <button onclick="savePasswords()">Save to TXT</button>
+            <button onclick="saveConfig()">Save Config</button>
+            <button onclick="loadConfig()">Load Config</button>
+            <button onclick="downloadDefaultConfig()">Download Default Config</button>
+            <button onclick="resetToDefault()">Reset to Default</button>
+        </div>
+
+        <h2>Logs:</h2>
+        <textarea id="logArea" class="log-area" readonly></textarea>
+    </div>
+
+    <script>
+        function log(message) {
+            const logArea = document.getElementById('logArea');
+            logArea.value += message + '\n';
+            logArea.scrollTop = logArea.scrollHeight; // Auto scroll to the bottom
+        }
+
+        function toggleBulkGeneration() {
+            const bulkCountLabel = document.getElementById('bulkCountLabel');
+            const bulkCountInput = document.getElementById('bulkCount');
+            const displayStyle = document.getElementById('bulkGeneration').checked ? 'block' : 'none';
+            bulkCountLabel.style.display = displayStyle;
+            bulkCountInput.style.display = displayStyle;
+            log(`Bulk generation toggled: ${displayStyle === 'block' ? 'Enabled' : 'Disabled'}`);
+        }
+
+        function generatePassword() {
+            const length = parseInt(document.getElementById('length').value);
+            if (length < 1 || length > 20) {
+                alert('Please enter a valid password length between 1 and 20.');
+                log('Failed to generate password: Invalid length.');
+                return;
+            }
+
+            const includeUppercase = document.getElementById('includeUppercase').checked;
+            const includeLowercase = document.getElementById('includeLowercase').checked;
+            const includeNumbers = document.getElementById('includeNumbers').checked;
+            const includeSymbols = document.getElementById('includeSymbols').checked;
+
+            const bulkCount = parseInt(document.getElementById('bulkCount').value);
+            const isBulk = document.getElementById('bulkGeneration').checked;
+
+            const characters = [
+                includeUppercase ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : '',
+                includeLowercase ? 'abcdefghijklmnopqrstuvwxyz' : '',
+                includeNumbers ? '0123456789' : '',
+                includeSymbols ? '!@#$%^&*()_+-=[]{}|;:,.<>?' : ''
+            ].join('');
+
+            if (!characters) {
+                document.getElementById('passwordList').innerHTML = 'Please select at least one character type!';
+                log('Failed to generate password: No character types selected.');
+                return;
+            }
+
+            let passwords = '';
+            for (let i = 0; i < (isBulk ? Math.min(bulkCount, 100) : 1); i++) { // Limit bulk count to prevent overloading
+                let password = '';
+                for (let j = 0; j < length; j++) {
+                    const randomIndex = Math.floor(Math.random() * characters.length);
+                    password += characters[randomIndex];
+                }
+                passwords += `${password}\n`;
+                updateStrengthMeter(password, 'generated'); // Update strength for the generated password
+            }
+
+            document.getElementById('passwordList').innerText = passwords.trim();
+            log(`Generated ${isBulk ? bulkCount : 1} password(s): ${passwords.trim()}`);
+        }
+
+        function evaluateStrength(password) {
+            let strength = 0;
+            if (password.length >= 8) strength += 25; // Length
+            if (/[A-Z]/.test(password)) strength += 25; // Uppercase
+            if (/[a-z]/.test(password)) strength += 25; // Lowercase
+            if (/\d/.test(password)) strength += 25; // Numbers
+            if (/[^A-Za-z0-9]/.test(password)) strength += 25; // Symbols
+            return Math.min(strength, 100); // Ensure strength doesn't exceed 100
+        }
+
+        function updateStrengthMeter(password, type) {
+            const strength = evaluateStrength(password);
+            const strengthMeter = type === 'generated' ? document.getElementById('generatedStrengthMeter') : document.getElementById('userStrengthMeter');
+            strengthMeter.innerText = `Strength: ${strength}%`;
+            log(`Updated strength for ${type} password: ${strength}%`);
+        }
+
+        function testPassword() {
+            const password = document.getElementById('testPassword').value;
+            if (!password) {
+                alert('Please enter a password to test.');
+                log('Failed to test password: No password entered.');
+                return;
+            }
+            updateStrengthMeter(password, 'user');
+            log(`Tested user password: ${password}`);
+        }
+
+        function savePasswords() {
+            const passwords = document.getElementById('passwordList').innerText;
+            if (!passwords) {
+                alert('No passwords to save!');
+                log('Failed to save passwords: No passwords generated.');
+                return;
+            }
+            const blob = new Blob([passwords], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = 'passwords.txt';
+            link.click();
+            log('Saved passwords to passwords.txt');
+        }
+
+        function saveConfig() {
+            const config = {
+                length: parseInt(document.getElementById('length').value),
+                includeUppercase: document.getElementById('includeUppercase').checked,
+                includeLowercase: document.getElementById('includeLowercase').checked,
+                includeNumbers: document.getElementById('includeNumbers').checked,
+                includeSymbols: document.getElementById('includeSymbols').checked,
+                bulkGeneration: document.getElementById('bulkGeneration').checked,
+                bulkCount: parseInt(document.getElementById('bulkCount').value)
+            };
+            localStorage.setItem('passwordGeneratorConfig', JSON.stringify(config));
+            alert('Configuration saved!');
+            log('Saved configuration:', JSON.stringify(config));
+        }
+
+        function loadConfig() {
+            const config = JSON.parse(localStorage.getItem('passwordGeneratorConfig'));
+            if (config) {
+                document.getElementById('length').value = config.length || 12;
+                document.getElementById('includeUppercase').checked = config.includeUppercase;
+                document.getElementById('includeLowercase').checked = config.includeLowercase;
+                document.getElementById('includeNumbers').checked = config.includeNumbers;
+                document.getElementById('includeSymbols').checked = config.includeSymbols;
+                document.getElementById('bulkGeneration').checked = config.bulkGeneration;
+                toggleBulkGeneration();
+                document.getElementById('bulkCount').value = config.bulkCount || 1;
+                alert('Configuration loaded!');
+                log('Loaded configuration:', JSON.stringify(config));
+            } else {
+                alert('No saved configuration found.');
+                log('No saved configuration found.');
+            }
+        }
+
+        function downloadDefaultConfig() {
+            const defaultConfig = {
+                length: 12,
+                includeUppercase: true,
+                includeLowercase: true,
+                includeNumbers: true,
+                includeSymbols: true,
+                bulkGeneration: false,
+                bulkCount: 1
+            };
+            const blob = new Blob([JSON.stringify(defaultConfig, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = 'defaultConfig.json';
+            link.click();
+            log('Downloaded default configuration: defaultConfig.json');
+        }
+
+        function resetToDefault() {
+            localStorage.removeItem('passwordGeneratorConfig');
+            document.getElementById('length').value = 12;
+            document.getElementById('includeUppercase').checked = true;
+            document.getElementById('includeLowercase').checked = true;
+            document.getElementById('includeNumbers').checked = true;
+            document.getElementById('includeSymbols').checked = true;
+            document.getElementById('bulkGeneration').checked = false;
+            toggleBulkGeneration();
+            document.getElementById('bulkCount').value = 1;
+            alert('Reset to default settings.');
+            log('Reset to default settings.');
+        }
+    </script>
+</body>
+</html>
