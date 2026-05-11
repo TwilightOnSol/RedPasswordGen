@@ -8,3 +8,4 @@ This repository is part of the TwilightOnSol ecosystem. It has been audited and 
 - index.html
 - middleware.js
 - package.json
+- Manus AI feedback & overview
