@@ -1,11 +1,9 @@
 # RedPasswordGen
 
 ## Overview
-This repository is part of the TwilightOnSol ecosystem. It has been audited and refactored for better performance and maintainability.
+A secure, client-side password generator. This tool allows users to generate strong, random passwords directly in their browser, ensuring no data ever leaves their device.
 
-## Project Structure
-- README.md
-- index.html
-- middleware.js
-- package.json
-- Manus AI feedback & overview
+## Features
+- **Client-Side Security**: All generation happens in the browser; no data is sent to a server.
+- **Customizable**: Options for length and character types (implied by the tech stack).
+- **Vercel Ready**: Optimized for quick deployment as a static site.
